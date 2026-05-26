@@ -14,39 +14,8 @@ The scheduler system consists of:
 1. At system startup, `schedule_quiz_runner.py` is launched
 2. It immediately runs `popup_review.py` and waits for it to complete
 3. Once `popup_review.py` finishes, it starts a background scheduler
-4. The scheduler runs `quiz_review.py` every 4 hours indefinitely
+4. The scheduler runs `quiz_review.py` every 4 hours until iteration limit
 5. All activity is logged to `schedule_quiz_runner.log`
-
-## Prerequisites
-
-- Python 3.12 or later
-- `uv` package manager installed
-- Windows OS with Task Scheduler
-- Administrator privileges for initial setup
-
-### Install uv
-
-If you don't have `uv` installed, download it from:
-https://docs.astral.sh/uv/getting-started/installation/
-
-Or install via PowerShell (admin):
-```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-### Install Dependencies
-
-The required Python packages are listed in `pyproject.toml`. Run:
-
-```bash
-uv sync
-```
-
-This installs:
-- pandas
-- python-dotenv
-- requests
-- apscheduler
 
 ## Setup Methods
 
@@ -66,22 +35,7 @@ To remove the task later:
 .\schedule_quiz_at_startup.ps1 -RemoveOnly
 ```
 
-### Method 2: Batch File (Windows Command Prompt)
-
-1. Open Command Prompt as Administrator
-2. Navigate to the project directory
-3. Run:
-
-```cmd
-schedule_quiz_at_startup.bat
-```
-
-To remove the task later:
-```cmd
-schedule_quiz_at_startup.bat /remove
-```
-
-### Method 3: Manual Setup via Task Scheduler GUI
+### Method 2: Manual Setup via Task Scheduler GUI
 
 1. Open Task Scheduler (Win+R → `taskschd.msc`)
 2. Click "Create Basic Task..." on the right
@@ -182,30 +136,10 @@ Instead of "At startup", you can trigger the task at a specific time. In the Pow
 .\schedule_quiz_at_startup.ps1 -RemoveOnly
 ```
 
-### Batch:
-```cmd
-schedule_quiz_at_startup.bat /remove
-```
-
 ### Task Scheduler GUI:
 1. Open Task Scheduler
 2. Find "Quiz Review Scheduler"
 3. Right-click → Delete
-
-## File Structure
-
-```
-project/
-├── popup_review.py                 # Topic collection GUI
-├── quiz_review.py                  # Quiz application
-├── schedule_quiz_runner.py          # Main scheduler script
-├── schedule_quiz_at_startup.ps1     # PowerShell setup script
-├── schedule_quiz_at_startup.bat     # Batch setup script
-├── schedule_quiz_at_startup_GUIDE.md # This file
-├── schedule_quiz_runner.log         # Generated log file
-├── pyproject.toml                   # Python dependencies
-└── README.md                        # Project README
-```
 
 ## Notes
 
@@ -213,11 +147,3 @@ project/
 - The process uses APScheduler's `BlockingScheduler`, which efficiently manages scheduled tasks
 - Log files are appended to (they grow over time - consider archiving old logs)
 - The hidden PowerShell window prevents the scheduler from appearing in the taskbar
-
-## Support
-
-If you encounter issues:
-1. Check `schedule_quiz_runner.log` for detailed error messages
-2. Run the scheduler manually with `uv run python schedule_quiz_runner.py` to see output
-3. Verify all files exist and have correct paths
-4. Ensure proper file permissions and PATH configuration
