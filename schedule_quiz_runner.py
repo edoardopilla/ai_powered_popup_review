@@ -148,6 +148,32 @@ def calculate_missed_executions():
     return 0, int(minutes_until_next)
 
 
+def should_reset_daily_counter():
+    """
+    Check if daily execution counter should be reset due to day change.
+    
+    Returns:
+        True if last execution was on a different day, False otherwise
+    """
+    history = load_quiz_history()
+    
+    if not history["last_execution_timestamp"]:
+        return False
+    
+    try:
+        last_exec = datetime.fromisoformat(history["last_execution_timestamp"])
+        today = datetime.now()
+        
+        # Check if last execution was on a different day
+        if last_exec.date() != today.date():
+            logger.info(f"Last execution was on {last_exec.date()}, today is {today.date()}. Resetting daily counter.")
+            return True
+    except (ValueError, TypeError):
+        return False
+    
+    return False
+
+
 def should_exit_scheduler():
     """
     Determine if the scheduler should exit.
@@ -250,7 +276,7 @@ def run_quiz_review():
             cwd=PROJECT_ROOT,
             capture_output=True,
             text=True,
-            timeout=600  # 10-minute timeout
+            timeout=1200  # 20-minute timeout
         )
         
         if result.returncode == 0:
@@ -266,7 +292,7 @@ def run_quiz_review():
         record_quiz_execution(quiz_execution_count)
         
     except subprocess.TimeoutExpired:
-        logger.error("quiz_review.py timed out after 10 minutes")
+        logger.error("quiz_review.py timed out after 20 minutes")
     except Exception as e:
         logger.error(f"Error running quiz_review.py: {e}")
     
@@ -303,18 +329,24 @@ def main():
     history = load_quiz_history()
     quiz_execution_count = history["last_execution_counter"]
     
+    # Reset daily counter if last execution was on a different day
+    if should_reset_daily_counter():
+        logger.info("Daily counter reset for new day.")
+        quiz_execution_count = 0
+    
     if missed_executions > 0:
         logger.warning(f"Device was offline. {missed_executions} quiz execution(s) were missed.")
         
-        # Execute missed quizzes immediately
-        for i in range(missed_executions):
-            if quiz_execution_count >= MAX_QUIZ_EXECUTIONS:
-                logger.info(f"Reached maximum of {MAX_QUIZ_EXECUTIONS} quiz executions. Not executing missed ones.")
-                break
-            
-            logger.info(f"Running missed quiz execution #{quiz_execution_count + 1}...")
+        # Execute first review immediately
+        if quiz_execution_count >= MAX_QUIZ_EXECUTIONS:
+            logger.info(f"Reached maximum of {MAX_QUIZ_EXECUTIONS} quiz executions. Not executing missed ones.")
+
+        else:
+            logger.info(f"Running missed quiz...")
             run_quiz_review()
-            time.sleep(2)  # Brief delay between executions
+            time.sleep(2)  # Brief delay
+
+            
     
     # Step 3: Schedule quiz_review.py to run every 4 hours (3 times maximum)
     logger.info("\nStep 3: Scheduling quiz_review.py to run every 4 hours (3 executions over 12 hours)...")

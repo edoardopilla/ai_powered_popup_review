@@ -17,3 +17,6 @@ wheels/
 
 # JSON files
 *.json
+
+# bug fix summary
+BUG_FIX_SUMMARY.md
